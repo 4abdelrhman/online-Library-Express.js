@@ -13,7 +13,6 @@ export const allBooks = asyncHandler(async (req, res) => {
   const apiBooks = data.docs.map((book) => ({
     title: book.title,
     author: book.author_name ? book.author_name.join(', ') : 'Unknown',
-    publishedYear: book.first_publish_year || 'N/A',
     cover: book.cover_i
       ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
       : null,
