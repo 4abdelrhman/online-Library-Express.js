@@ -14,7 +14,13 @@ app.use('/api', requireAuth(), ensureUserExists);
 
 app.use('/api/books', bookRoutes);
 
-app.listen(ENV.PORT, () => {
-  console.log(`Server is running on port ${ENV.PORT}`);
-  connectDB();
-});
+connectDB()
+  .then(() => {
+    app.listen(ENV.PORT, () => {
+      console.log(`Server running on port ${ENV.PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('DB connection failed', err);
+    process.exit(1);
+  });

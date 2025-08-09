@@ -1,30 +1,71 @@
 import Book from '../models/book.model.js';
 import cloudinary from '../config/cloudinary.js';
 import asyncHandler from 'express-async-handler';
+import axios from 'axios';
+
+const EXTERNAL_BOOKS_API = 'https://openlibrary.org/search.json?limit=20';
 
 export const allBooks = asyncHandler(async (req, res) => {
-  const books = await Book.find();
-  if (!books) {
-    return res.status(404).json({ message: 'No books found' });
-  }
+  const dbBooks = await Book.find();
+
+  const { data } = await axios.get(EXTERNAL_BOOKS_API);
+
+  const apiBooks = data.docs.map((book) => ({
+    title: book.title,
+    author: book.author_name ? book.author_name.join(', ') : 'Unknown',
+    publishedYear: book.first_publish_year || 'N/A',
+    cover: book.cover_i
+      ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
+      : null,
+  }));
+
+  const allBooks = [...dbBooks.map((b) => ({ ...b._doc })), ...apiBooks];
 
   res.status(200).json({
-    count: books.length,
-    books,
+    count: allBooks.length,
+    books: allBooks,
   });
 });
 
-export const authorBooks = asyncHandler(async (req, res) => {
-  const books = await Book.find({ author: req.params.authorName });
+export const searchBooks = asyncHandler(async (req, res) => {
+  const query = req.query.q;
+  if (!query || query.trim() === '') {
+    return res
+      .status(400)
+      .json({ success: false, message: 'No search term provided' });
+  }
+  const adminBooksRaw = await Book.find({
+    $or: [
+      { title: { $regex: query, $options: 'i' } },
+      { author: { $regex: query, $options: 'i' } },
+    ],
+  });
+  const adminBooks = adminBooksRaw.map((book) => ({
+    title: book.title,
+    author: book.author,
+    coverURI: book.cover || null,
+  }));
 
-  if (!books || books.length === 0) {
-    return res.status(404).json({ message: 'No books found for this author' });
+  let externalBooks = [];
+  try {
+    const externalRes = await axios.get(
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}`
+    );
+
+    externalBooks = externalRes.data.docs.map((book) => ({
+      title: book.title,
+      author: book.author_name?.[0] || 'Unknown',
+      cover: book.cover_i
+        ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
+        : null,
+      source: 'openlibrary',
+    }));
+  } catch (err) {
+    console.error('Error fetching external books:', err.message);
   }
 
-  res.status(200).json({
-    count: books.length,
-    books,
-  });
+  const results = [...adminBooks, ...externalBooks];
+  res.json({ success: true, books: results });
 });
 
 export const addBook = asyncHandler(async (req, res) => {
@@ -90,7 +131,7 @@ export const deleteBook = asyncHandler(async (req, res) => {
       const publicId = bookToDelete.coverURI.split('/').pop().split('.')[0];
       await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
     } catch (error) {
-      console.log('Error deleting book:', deleteError);
+      console.log('Error deleting book:', error);
     }
   }
 

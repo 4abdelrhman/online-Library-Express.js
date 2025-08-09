@@ -4,7 +4,7 @@ import {
   addBook,
   editBook,
   deleteBook,
-  authorBooks,
+  searchBooks,
 } from '../controllers/books.controller.js';
 import { borrowBook, addToFav } from '../controllers/user.controller.js';
 import { requireAuth } from '@clerk/express';
@@ -14,7 +14,8 @@ const router = express.Router();
 
 //Admin and user can see the books
 router.get('/', requireAuth(), allBooks);
-router.get('/author/:authorName', requireAuth(), authorBooks);
+//Admin and User can search books
+router.get('/search', requireAuth(), searchBooks);
 
 //Only users can borrow books
 router.post('/borrow/:id', requireAuth(), borrowBook);
