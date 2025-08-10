@@ -3,7 +3,10 @@ import { clerkMiddleware, requireAuth } from '@clerk/express';
 import { ENV } from './config/env.js';
 import { connectDB } from './config/db.js';
 import bookRoutes from './routes/books.route.js';
-import { ensureUserExists } from './middleware/ensureUserExists.middleware.js';
+
+connectDB().catch((err) => {
+  console.error('DB connection failed', err);
+});
 
 const app = express();
 
@@ -20,13 +23,4 @@ app.get('/api/test', (req, res) => {
 
 app.use('/api/books', bookRoutes);
 
-connectDB()
-  .then(() => {
-    app.listen(ENV.PORT, () => {
-      console.log(`Server running on port ${ENV.PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('DB connection failed', err);
-    process.exit(1);
-  });
+export default app;
