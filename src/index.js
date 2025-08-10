@@ -10,6 +10,10 @@ const app = express();
 app.use(express.json());
 app.use(clerkMiddleware());
 
+app.use('/', (req, res) => {
+  res.send('Welcome to the Book API with Clerk Authentication!');
+});
+
 app.use('/api', requireAuth(), ensureUserExists);
 
 app.use('/api/books', bookRoutes);
