@@ -1,5 +1,4 @@
-# Online Library Express.js API
-[![Ask DeepWiki](https://devin.ai/assets/askdeepwiki.png)](https://deepwiki.com/4abdelrhman/online-Library-Express.js.git)
+# Online Library API
 
 This is a backend service for an online library application, built with Node.js and Express.js. It features robust user authentication and role-based access control using Clerk, secure image handling with Cloudinary, and protection against common web threats via Arcjet.
 
