@@ -1,6 +1,5 @@
 import express from 'express';
-import { clerkMiddleware, requireAuth } from '@clerk/express';
-import { ENV } from './config/env.js';
+import { clerkMiddleware } from '@clerk/express';
 import { connectDB } from './config/db.js';
 import bookRoutes from './routes/books.route.js';
 

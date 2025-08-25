@@ -3,14 +3,14 @@ import cloudinary from '../config/cloudinary.js';
 import asyncHandler from 'express-async-handler';
 import axios from 'axios';
 
-const EXTERNAL_BOOKS_API = 'https://openlibrary.org/search.json?limit=20';
+const EXTERNAL_BOOKS_API = 'https://openlibrary.org/trending/weekly.json';
 
 export const allBooks = asyncHandler(async (req, res) => {
   const dbBooks = await Book.find();
 
   const { data } = await axios.get(EXTERNAL_BOOKS_API);
 
-  const apiBooks = data.docs.map((book) => ({
+  const apiBooks = (data.works || []).map((book) => ({
     title: book.title,
     author: book.author_name ? book.author_name.join(', ') : 'Unknown',
     cover: book.cover_i
