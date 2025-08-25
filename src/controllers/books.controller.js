@@ -26,6 +26,7 @@ export const allBooks = asyncHandler(async (req, res) => {
   });
 });
 
+
 export const searchBooks = asyncHandler(async (req, res) => {
   const query = req.query.q;
   if (!query || query.trim() === '') {
