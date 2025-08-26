@@ -10,13 +10,31 @@ export const allBooks = asyncHandler(async (req, res) => {
 
   const { data } = await axios.get(EXTERNAL_BOOKS_API);
 
-  const apiBooks = (data.works || []).map((book) => ({
-    title: book.title,
-    author: book.author_name ? book.author_name.join(', ') : 'Unknown',
-    cover: book.cover_i
-      ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
-      : null,
-  }));
+  const apiBooks = await Promise.all(
+    (data.works || []).map(async (book) => {
+      let description = null;
+      try {
+        const workRes = await axios.get(
+          `https://openlibrary.org${book.key}.json`
+        );
+        if (typeof workRes.data.description === 'string') {
+          description = workRes.data.description;
+        } else if (workRes.data.description?.value) {
+          description = workRes.data.description.value;
+        }
+      } catch (error) {}
+
+      return {
+        title: book.title,
+        author: book.author_name ? book.author_name.join(', ') : 'Unknown',
+        cover: book.cover_i
+          ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
+          : null,
+        description,
+        source: 'API books',
+      };
+    })
+  );
 
   const allBooks = [...dbBooks.map((b) => ({ ...b._doc })), ...apiBooks];
 
@@ -25,7 +43,6 @@ export const allBooks = asyncHandler(async (req, res) => {
     books: allBooks,
   });
 });
-
 
 export const searchBooks = asyncHandler(async (req, res) => {
   const query = req.query.q;
@@ -44,6 +61,7 @@ export const searchBooks = asyncHandler(async (req, res) => {
     title: book.title,
     author: book.author,
     coverURI: book.cover || null,
+    source: 'Database',
   }));
 
   let externalBooks = [];
@@ -52,16 +70,33 @@ export const searchBooks = asyncHandler(async (req, res) => {
       `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}`
     );
 
-    externalBooks = externalRes.data.docs.map((book) => ({
-      title: book.title,
-      author: book.author_name?.[0] || 'Unknown',
-      cover: book.cover_i
-        ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
-        : null,
-      source: 'openlibrary',
-    }));
-  } catch (err) {
-    console.error('Error fetching external books:', err.message);
+    externalBooks = await Promise.all(
+      (externalRes.data.docs || []).map(async (book) => {
+        let description = null;
+        try {
+          const workRes = await axios.get(
+            `https://openlibrary.org${book.key}.json`
+          );
+          if (typeof workRes.data.description === 'string') {
+            description = workRes.data.description;
+          } else if (workRes.data.description?.value) {
+            description = workRes.data.description.value;
+          }
+        } catch (error) {}
+
+        return {
+          title: book.title,
+          author: book.author_name ? book.author_name.join(', ') : 'Unknown',
+          cover: book.cover_i
+            ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
+            : null,
+          description,
+          source: 'API books',
+        };
+      })
+    );
+  } catch (error) {
+    console.error('Error fetching external books:', error.message);
   }
 
   const results = [...adminBooks, ...externalBooks];
